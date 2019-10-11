@@ -24,7 +24,7 @@ router.get('/:username', auth.optional, function(req, res, next){
         });
     } else {
         return res.json({
-            profile: res.profile.toProfileJSONFor(false)});
+            profile: req.profile.toProfileJSONFor(false)});
     }
 });
 

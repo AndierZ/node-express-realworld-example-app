@@ -14,8 +14,6 @@ var ArticleSchema = mongoose.Schema({
 
 ArticleSchema.plugin(uniqueValidate, {message: 'already taken'});
 
-mongoose.model('Article', ArticleSchema);
-
 ArticleSchema.methods.slugify = function(){
     this.slug = slug(this.title) + "-" + (Math.random() * Math.pow(36, 6) | 0).toString(36);
 };
@@ -41,3 +39,6 @@ ArticleSchema.methods.toJSONFor = function(user){
       author: this.author.toProfileJSONFor(user)
     };
   };
+
+  // has to be placed at the bottom
+  mongoose.model('Article', ArticleSchema);
