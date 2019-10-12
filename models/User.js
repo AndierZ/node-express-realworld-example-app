@@ -10,7 +10,8 @@ var UserSchema = new mongoose.Schema({
     bio: String,
     image: String,
     salt: String,
-    hash: String
+    hash: String,
+    favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Article' }]
 }, {timestamps: true})
 
 UserSchema.plugin(uniqueValidator, {message: 'is already taken.'});
@@ -51,6 +52,23 @@ UserSchema.methods.toProfileJSONFor = function(user) {
     followed: false
   };
 };
+
+UserSchema.methods.favorite = function(id) {
+    if (this.favorites.indexOf(id) == -1) {
+        this.favorites.push(id);
+    }
+
+    return this.save();
+};
+
+UserSchema.methods.unfavorite = function(id) {
+    this.favorites.remove(id);
+    return this.save();
+};
+
+UserSchema.methods.isFavorite = function(id) {
+    this.favorites.indexOf(id) != -1;
+}
 
 mongoose.model('User', UserSchema);
 
