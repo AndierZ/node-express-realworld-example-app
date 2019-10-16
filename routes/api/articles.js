@@ -3,6 +3,7 @@ var passport = require('passport');
 var mongoose = require('mongoose');
 var Article = mongoose.model('Article');
 var User = mongoose.model('User');
+var Comment = mongoose.model('Comment');
 var auth = require('../auth');
 
 router.post('/', auth.required, function(req, res, next){
@@ -27,6 +28,15 @@ router.param('article', function(req, res, next, slug){
 
         return next();
     }).catch(next);
+});
+
+router.param('comment', function(req, res, next, id) {
+  Comment.findById(id).then(function(comment) {
+    if (!comment) res.sendStatus(404);
+    req.comment = comment;
+
+    return next();
+  }).catch(next);
 });
 
 router.get('/:article', auth.optional, function(req, res, next){
@@ -100,5 +110,53 @@ router.put('/:article', auth.required, function(req, res, next) {
     }).catch(next);
   });
   
+  router.post('/:article/comment', auth.required, function(req, res, next) {
+    User.findById(req.payload.id).then(function(user) {
+      if (!user) return res.sendStatus(401);
+      var comment = new Comment(req.body.comment);
+      comment.article = req.article;
+      comment.author = user;
+
+      return comment.save().then(function() {
+        req.article.comments = req.article.comments.concat([comment]);
+
+        req.article.save().then(function() {
+            res.json({comment : comment.toJSONFor(user)});
+        });
+      });
+    })
+  });
+
+  router.get('/:article/comments', auth.optional, function(req, res, next) {
+    if (!req.article) return res.sendStatus(401);
+    Promise.resolve(req.payload ? User.findById(req.payload.id) : null).then(function(user){
+      return req.article.populate({
+        path: 'comments',
+        populate: {
+          path: 'author'
+        },
+        option: {
+          sort: {
+            createAt: 'desc'
+          }
+        }
+      }).execPopulate().then(function(article){
+          return res.json({comments : req.article.comments.map(function(comment) {
+            return comment.toJSONFor(user);
+          })});
+      });
+    }).catch(next);
+  });
+
+  router.delete('/:article/comments/:comment', auth.required, function(req, res, next) {
+    if (req.comment.author.toString() === req.payload.id.toString()) {
+      req.article.comments.remove(req.comment_id);
+      req.article.save().then( Comment.findById(req.comment_id).remove().exec()).then(function() {
+        res.sendStatus(201);
+      });
+    } else {
+      res.sendStatus(403);
+    }
+  });
 
 module.exports = router;
