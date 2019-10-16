@@ -186,6 +186,8 @@ router.put('/:article', auth.required, function(req, res, next) {
 
       if (author) {
         query.author = author._id;
+      } else if (req.query.author) {
+        query._id = {"$in": []};
       }
 
       if (favoriter) {
@@ -196,11 +198,11 @@ router.put('/:article', auth.required, function(req, res, next) {
 
       return Promise.all([
         Article.find(query)
-        .limit(limit)
-        .skip(offset)
-        .sort({createdAt: 'Desc'}
+        .limit(Number(limit))
+        .skip(Number(offset))
+        .sort({createdAt: 'desc'})
         .populate('author')
-        .exec()),
+        .exec(),
         Article.count(query).exec(),
         req.payload ? User.findById(req.payload.id) : null
       ]).then(function(results){
@@ -233,8 +235,8 @@ router.put('/:article', auth.required, function(req, res, next) {
 
       Promise.all([
         Article.find({author: {"$in": user.following}})
-        .limit(limit)
-        .skip(offset)
+        .limit(Number(limit))
+        .skip(Number(offset))
         .populate(author)
         .exec(),
         Article.count({author: {"$in": user.following}})
