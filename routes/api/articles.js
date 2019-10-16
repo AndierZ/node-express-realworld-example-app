@@ -120,11 +120,11 @@ router.put('/:article', auth.required, function(req, res, next) {
       return comment.save().then(function() {
         req.article.comments = req.article.comments.concat([comment]);
 
-        req.article.save().then(function() {
+        return req.article.save().then(function(article) {
             res.json({comment : comment.toJSONFor(user)});
         });
       });
-    })
+    }).catch(next);
   });
 
   router.get('/:article/comments', auth.optional, function(req, res, next) {
@@ -150,8 +150,9 @@ router.put('/:article', auth.required, function(req, res, next) {
 
   router.delete('/:article/comments/:comment', auth.required, function(req, res, next) {
     if (req.comment.author.toString() === req.payload.id.toString()) {
-      req.article.comments.remove(req.comment_id);
-      req.article.save().then( Comment.findById(req.comment_id).remove().exec()).then(function() {
+      req.article.comments.remove(req.comment._id);
+      req.article.save().then(
+        Comment.find({_id: req.comment._id}).remove().exec()).then(function() {
         res.sendStatus(201);
       });
     } else {
